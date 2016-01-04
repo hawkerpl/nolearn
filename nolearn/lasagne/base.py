@@ -4,6 +4,7 @@ from .._compat import basestring
 from .._compat import chain_exception
 from .._compat import pickle
 from collections import OrderedDict
+from inspect import isfunction
 import itertools
 from warnings import warn
 from time import time
@@ -137,16 +138,22 @@ def objective(layers,
               loss_function,
               target,
               aggregate=aggregate,
+              aggregation_weights=None,
               deterministic=False,
               l1=0,
               l2=0,
               get_output_kw=None):
     if get_output_kw is None:
         get_output_kw = {}
+
     output_layer = layers[-1]
     network_output = get_output(
         output_layer, deterministic=deterministic, **get_output_kw)
-    loss = aggregate(loss_function(network_output, target))
+    if isfunction(aggregation_weights):
+        weights = aggregation_weights(layers)
+    else:
+        weights = aggregation_weights
+    loss = aggregate(loss_function(network_output, target), weights)
 
     if l1:
         loss += regularization.regularize_layer_params(
